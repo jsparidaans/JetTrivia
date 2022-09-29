@@ -1,7 +1,7 @@
 package com.example.jettrivia.data
 
-data class DataOrException<T, Loading:Boolean, E : Exception>(
+data class DataOrException<T,Boolean, E : Exception>(
     var data: T? =null,
-    var loading: Loading? = null,
+    var loading: Boolean? = null,
     var exception: E? = null
 )
