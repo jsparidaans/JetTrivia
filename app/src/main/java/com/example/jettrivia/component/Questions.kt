@@ -1,14 +1,21 @@
 package com.example.jettrivia.component
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
@@ -19,6 +26,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.jettrivia.model.QuestionItem
 import com.example.jettrivia.screens.QuestionsViewModel
 import com.example.jettrivia.util.AppColors
 
@@ -30,16 +38,37 @@ fun Questions(viewModel: QuestionsViewModel) {
         CircularProgressIndicator()
 
     } else {
-
-        questions?.forEach { questionItem ->
-
+        if (questions != null) {
+            QuestionDisplay(question = questions.first())
         }
     }
 }
 
-@Preview
+//@Preview
 @Composable
-fun QuestionDisplay() {
+fun QuestionDisplay(
+    question: QuestionItem,
+//    idx: MutableState<Int>,
+//    viewModel: QuestionsViewModel,
+    onNextClicked: (Int) -> Unit = {}
+) {
+
+    val choicesState = remember(question) {
+        question.choices.toMutableList()
+    }
+    val answerState = remember(question) {
+        mutableStateOf<Int?>(null)
+    }
+    val correctAnswerState = remember(question) {
+        mutableStateOf<Boolean?>(null)
+    }
+    val updateAnswer: (Int) -> Unit = remember(question) {
+        {
+            answerState.value = it
+            correctAnswerState.value = choicesState[it] == question.answer
+        }
+    }
+
     val pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), phase = 0f)
     Surface(
         modifier = Modifier
@@ -54,6 +83,62 @@ fun QuestionDisplay() {
         ) {
             QuestionTracker()
             DrawDottedLine(pathEffect = pathEffect)
+
+            Column {
+                Text(
+                    modifier = Modifier
+                        .fillMaxHeight(.3f)
+                        .padding(6.dp)
+                        .align(alignment = Alignment.Start),
+                    text = question.question,
+                    color = AppColors.mOffWhite,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 22.sp
+                )
+
+                choicesState.forEachIndexed { index, answer ->
+                    Row(
+                        modifier = Modifier
+                            .padding(3.dp)
+                            .fillMaxWidth()
+                            .height(45.dp)
+                            .border(
+                                width = 4.dp,
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        AppColors.mOffDarkPurple,
+                                        AppColors.mOffDarkPurple
+                                    )
+                                ),
+                                shape = RoundedCornerShape(15.dp)
+                            )
+                            .clip(
+                                RoundedCornerShape(
+                                    topStartPercent = 50,
+                                    topEndPercent = 50,
+                                    bottomEndPercent = 50,
+                                    bottomStartPercent = 50
+                                )
+                            )
+                            .background(color = Color.Transparent),
+                        verticalAlignment = CenterVertically
+                    ) {
+                        RadioButton(
+                            modifier = Modifier.padding(start = 16.dp),
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor =
+                                if (correctAnswerState.value == true && index == answerState.value)
+                                    Color.Green.copy(alpha = .2f)
+                                else Color.Red.copy(alpha = .2f)
+                            ),
+                            selected = (answerState.value == index),
+                            onClick = { updateAnswer(index) }
+                        )
+                        Text(text = answer)
+                    }
+                }
+            }
         }
     }
 }
