@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -34,12 +35,28 @@ import com.example.jettrivia.util.AppColors
 @Composable
 fun Questions(viewModel: QuestionsViewModel) {
     val questions = viewModel.data.value.data?.toMutableList()
+    val index = remember {
+        mutableStateOf(0)
+    }
     if (viewModel.data.value.loading == true) {
         CircularProgressIndicator()
 
     } else {
         if (questions != null) {
-            QuestionDisplay(question = questions.first())
+            val question = try {
+                questions[index.value]
+            } catch (e: Exception) {
+                null
+            }
+            if (question != null) {
+                QuestionDisplay(
+                    question = question,
+                    idx = index,
+                    viewModel = viewModel,
+                    onNextClicked = {
+                        index.value += 1
+                    })
+            }
         }
     }
 }
@@ -48,8 +65,8 @@ fun Questions(viewModel: QuestionsViewModel) {
 @Composable
 fun QuestionDisplay(
     question: QuestionItem,
-//    idx: MutableState<Int>,
-//    viewModel: QuestionsViewModel,
+    idx: MutableState<Int>,
+    viewModel: QuestionsViewModel,
     onNextClicked: (Int) -> Unit = {}
 ) {
 
@@ -72,8 +89,7 @@ fun QuestionDisplay(
     val pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), phase = 0f)
     Surface(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(4.dp),
+            .fillMaxSize(),
         color = AppColors.mDarkPurple
     ) {
         Column(
@@ -81,7 +97,7 @@ fun QuestionDisplay(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
-            QuestionTracker()
+            QuestionTracker(idx.value)
             DrawDottedLine(pathEffect = pathEffect)
 
             Column {
@@ -135,8 +151,39 @@ fun QuestionDisplay(
                             selected = (answerState.value == index),
                             onClick = { updateAnswer(index) }
                         )
-                        Text(text = answer)
+                        val annotatedString = buildAnnotatedString {
+                            withStyle(
+                                style = SpanStyle(
+                                    fontWeight = FontWeight.Light,
+                                    color =
+                                    if (correctAnswerState.value == true && index == answerState.value)
+                                        Color.Green
+                                    else if (correctAnswerState.value == false && index == answerState.value)
+                                        Color.Red
+                                    else
+                                        AppColors.mOffWhite,
+                                    fontSize = 17.sp
+                                )
+                            ) {
+                                append(answer)
+                            }
+                        }
+                        Text(modifier = Modifier.padding(6.dp), text = annotatedString)
                     }
+                }
+                Button(
+                    modifier = Modifier
+                        .padding(3.dp),
+                    shape = RoundedCornerShape(34.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = AppColors.mLightBlue),
+                    onClick = { onNextClicked(idx.value) }) {
+                    Text(
+                        modifier = Modifier.padding(4.dp),
+                        color = AppColors.mOffWhite,
+                        fontSize = 17.sp,
+                        text = "Next"
+                    )
+
                 }
             }
         }
